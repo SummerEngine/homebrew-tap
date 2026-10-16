@@ -1,0 +1,56 @@
+name: Bump the formula
+
+# Keeps Formula/summer.rb on the npm `latest` of summer-engine, so
+# `brew install summerengine/tap/summer` gives the same version as npm.
+# Only `latest` moves brew: a release soaking on `next` does not.
+# Runs every hour and by hand; the default GITHUB_TOKEN pushes, so no secret.
+
+on:
+  schedule:
+    - cron: "17 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bump
+  cancel-in-progress: false
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the tap
+        uses: actions/checkout@v5
+
+      - name: Point the formula at the npm latest
+        id: bump
+        run: |
+          set -euo pipefail
+          FORMULA=Formula/summer.rb
+          LATEST=$(npm view summer-engine dist-tags.latest)
+          CURRENT=$(sed -nE 's|^  url ".*/summer-engine-([^"]+)\.tgz"$|\1|p' "$FORMULA")
+          echo "npm latest: $LATEST, formula: $CURRENT"
+          if [ -z "$LATEST" ] || [ -z "$CURRENT" ]; then
+            echo "::error::Could not read the npm latest or the formula version."
+            exit 1
+          fi
+          if [ "$LATEST" = "$CURRENT" ]; then
+            echo "The formula is current."
+            exit 0
+          fi
+          TARBALL=$(npm view "summer-engine@${LATEST}" dist.tarball)
+          SHA256=$(curl -fsSL "$TARBALL" | sha256sum | cut -d' ' -f1)
+          sed -i -E "s|^  url \".*\"$|  url \"${TARBALL}\"|; s|^  sha256 \".*\"$|  sha256 \"${SHA256}\"|" "$FORMULA"
+          echo "version=$LATEST" >> "$GITHUB_OUTPUT"
+
+      - name: Commit and push
+        if: steps.bump.outputs.version != ''
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Formula/summer.rb
+          git diff --cached --quiet && exit 0
+          git commit -m "summer ${{ steps.bump.outputs.version }}"
+          git push
