@@ -1,0 +1,45 @@
+name: Test the formula
+
+# Installs the formula from source on a clean Mac and Linux, the way a user
+# gets it, and checks the summer command runs. Runs on every change, and the
+# bump workflow starts it after each new version.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Set up Homebrew with this tap
+        uses: Homebrew/actions/setup-homebrew@main
+
+      - name: Style
+        run: brew style summerengine/tap
+
+      - name: Audit
+        run: brew audit --strict --online summerengine/tap/summer
+
+      - name: Install from source
+        run: brew install --build-from-source summerengine/tap/summer
+
+      - name: Formula test
+        run: brew test summerengine/tap/summer
+
+      - name: The summer command runs signed out
+        env:
+          HOME: ${{ runner.temp }}/home
+        run: |
+          mkdir -p "$HOME"
+          summer --version
+          summer ops search publish my game

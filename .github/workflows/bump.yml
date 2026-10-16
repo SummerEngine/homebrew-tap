@@ -4,6 +4,7 @@ name: Bump the formula
 # `brew install summerengine/tap/summer` gives the same version as npm.
 # Only `latest` moves brew: a release soaking on `next` does not.
 # Runs every hour and by hand; the default GITHUB_TOKEN pushes, so no secret.
+# A push by that token starts no workflow, so it starts the formula test itself.
 
 on:
   schedule:
@@ -12,6 +13,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 concurrency:
   group: bump
@@ -54,3 +56,9 @@ jobs:
           git diff --cached --quiet && exit 0
           git commit -m "summer ${{ steps.bump.outputs.version }}"
           git push
+
+      - name: Test the new version
+        if: steps.bump.outputs.version != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run test.yml --repo "$GITHUB_REPOSITORY" --ref main
