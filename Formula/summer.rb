@@ -1,8 +1,8 @@
 class Summer < Formula
   desc "MCP server, CLI and skills for Summer Engine, the game engine built for AI"
   homepage "https://summerengine.com"
-  url "https://registry.npmjs.org/summer-engine/-/summer-engine-4.3.0.tgz"
-  sha256 "ffb422da5ef25709bdeaec7e188aaefee954272169b566788642622c0c8de05d"
+  url "https://registry.npmjs.org/summer-engine/-/summer-engine-4.5.0.tgz"
+  sha256 "14bab0b797165d5e4bb3ea566a8788daf624938e580e50e2cf5304ee5fc2545f"
   license "MIT"
 
   depends_on "node"
